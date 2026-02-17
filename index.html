@@ -3,345 +3,111 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ODA 수원국 간단 대시보드 (2020–2025)</title>
+  <title>ODA 대시보드(구글시트 연동)</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; }
-    header { padding: 16px 18px; background: white; border-bottom: 1px solid #e7e8ee; position: sticky; top: 0; z-index: 10; }
-    h1 { margin: 0; font-size: 18px; }
-    .sub { margin-top: 6px; color:#666; font-size: 13px; }
-    .wrap { padding: 16px 18px; max-width: 1100px; margin: 0 auto; }
-    .card { background: white; border: 1px solid #e7e8ee; border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.04); }
-    .grid { display: grid; gap: 14px; }
-    .grid2 { grid-template-columns: 1fr 1fr; }
-    .grid3 { grid-template-columns: 1fr 1fr 1fr; }
-    @media (max-width: 900px){ .grid2, .grid3 { grid-template-columns: 1fr; } }
-    label { font-size: 12px; color:#555; display:block; margin-bottom: 6px; }
-    select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #d7d9e3; background: #fff; }
-    .kpi { display:flex; justify-content:space-between; align-items:center; gap: 10px; }
-    .kpi .v { font-size: 18px; font-weight: 700; }
-    .kpi .t { font-size: 12px; color:#666; }
-    canvas { width: 100%; height: 320px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-    th { background: #fafafa; font-weight: 700; }
-    .muted { color:#666; font-size: 12px; }
-    .btnrow { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-    button { padding:10px 12px; border:1px solid #d7d9e3; background:#fff; border-radius:10px; cursor:pointer; }
-    button:hover { background:#f3f4f8; }
+    body{font-family:system-ui,Segoe UI,Arial; margin:20px;}
+    .card{border:1px solid #ddd; border-radius:12px; padding:14px; max-width:900px;}
+    select{padding:8px; font-size:14px;}
   </style>
 </head>
-
 <body>
-  <header>
-    <h1>ODA 수원국 간단 대시보드 (2020–2025)</h1>
-    <div class="sub">국가/지표를 선택하면 차트·표가 자동 갱신됩니다. (연습용 내장 데이터)</div>
-  </header>
+  <h2>ODA 대시보드(구글시트 자동읽기)</h2>
 
-  <div class="wrap grid" style="gap:14px;">
-    <!-- 필터 -->
-    <div class="card grid grid3">
+  <div class="card">
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
       <div>
-        <label>국가 선택</label>
-        <select id="countrySel"></select>
+        <div style="font-size:12px;color:#666;margin-bottom:6px;">국가 선택</div>
+        <select id="countrySelect"></select>
       </div>
-      <div>
-        <label>지표 선택</label>
-        <select id="metricSel"></select>
-      </div>
-      <div>
-        <label>보기 옵션</label>
-        <div class="btnrow">
-          <button id="btnReset">초기화</button>
-          <button id="btnDownload">표 CSV 다운로드</button>
-        </div>
-        <div class="muted">※ “웹 배포(GitHub Pages)”는 아래 6번 참고</div>
+      <div style="font-size:12px;color:#666;">
+        ※ 구글시트 수정 후 이 페이지를 새로고침(F5)하면 값이 반영됩니다.
       </div>
     </div>
 
-    <!-- KPI -->
-    <div class="grid grid3">
-      <div class="card kpi">
-        <div>
-          <div class="t">선택 국가</div>
-          <div class="v" id="kpiCountry">-</div>
-        </div>
-        <div class="muted" id="kpiYears">2020–2025</div>
-      </div>
-      <div class="card kpi">
-        <div>
-          <div class="t">선택 지표</div>
-          <div class="v" id="kpiMetric">-</div>
-        </div>
-        <div class="muted" id="kpiUnit">단위</div>
-      </div>
-      <div class="card kpi">
-        <div>
-          <div class="t">2025 값</div>
-          <div class="v" id="kpiLast">-</div>
-        </div>
-        <div class="muted" id="kpiDelta">2020 대비 변화</div>
-      </div>
-    </div>
-
-    <!-- 차트 + 표 -->
-    <div class="grid grid2">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-          <div style="font-weight:700;">연도별 추이</div>
-          <div class="muted" id="chartNote">-</div>
-        </div>
-        <canvas id="chart"></canvas>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:700; margin-bottom:10px;">데이터 표</div>
-        <table>
-          <thead>
-            <tr><th>Year</th><th>Value</th></tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="muted" style="padding:0 2px;">
-      ✔ 이 연습이 성공하면, 다음 단계로 “data.csv 분리(엑셀→CSV)” 버전도 바로 확장 가능합니다.
+    <div style="margin-top:14px;">
+      <canvas id="chart" height="120"></canvas>
     </div>
   </div>
 
 <script>
-  // 1) 연습용 내장 데이터(ODA 수원국, 2020~2025)
-  // 지표는 "지난번과 유사하게" 4개 정도만: 행복지수/디지털정부/물류/부패인식(예시)
-  // 값은 예시용이므로, 나중에 실제 데이터로 교체하면 됩니다.
+  // ✅ 다음 단계에서 구글시트 "웹에 게시 CSV 링크"를 여기에 넣습니다
+  const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYJuhk55EpCvYR81XtF8603J3eW-UEtU2nDZ7OxvVK0mpO7a4vkdOsqUMus9bpXM9se1TETbEKPAMX/pub?output=csv";
 
-  const SHEET_CSV_URL = "여기에-구글시트-웹게시-CSV-링크";
+  async function loadSheetCSV(){
+    const res = await fetch(SHEET_CSV_URL);
+    const text = await res.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
 
-  const YEARS = [2020, 2021, 2022, 2023, 2024, 2025];
+    // 첫 줄은 헤더: Country,Year,Value
+    const rows = lines.slice(1);
 
-  const METRICS = [
-    { key: "happiness", name: "행복지수", unit: "점(0~10)" },
-    { key: "egov",      name: "전자정부 준비도", unit: "점(0~1)" },
-    { key: "logistics", name: "물류성과(LPI)", unit: "점(1~5)" },
-    { key: "cpi",       name: "부패인식(CPI)", unit: "점(0~100)" }
-  ];
+    const data = {};
+    rows.forEach(line=>{
+      const [country, year, value] = line.split(",");
+      if (!country) return;
+      if (!data[country]) data[country] = [];
+      data[country].push({ year: year?.trim(), value: parseFloat(value) });
+    });
 
-  let DATA = {};
+    // 연도 정렬
+    Object.keys(data).forEach(c=>{
+      data[c].sort((a,b)=> (a.year||"").localeCompare(b.year||""));
+    });
 
-async function loadCSV() {
-  const res = await fetch(SHEET_CSV_URL);
-  const text = await res.text();
-
-  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-  const header = lines[0].split(",");
-
-  const data = {};
-
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(",");
-    const country = cols[0].trim();
-    const metric = cols[1].trim();
-    const year = parseInt(cols[2]);
-    const value = parseFloat(cols[3]);
-
-    if (!data[country]) data[country] = {};
-    if (!data[country][metric]) data[country][metric] = [];
-
-    data[country][metric].push({ year, value });
+    return data;
   }
 
-  return data;
-}
+  let chart;
 
-  // 2) DOM
-  const countrySel = document.getElementById("countrySel");
-  const metricSel  = document.getElementById("metricSel");
-  const tbody      = document.getElementById("tbody");
+  function drawChart(country, data){
+    const labels = data[country].map(d=>d.year);
+    const values = data[country].map(d=>d.value);
 
-  const kpiCountry = document.getElementById("kpiCountry");
-  const kpiMetric  = document.getElementById("kpiMetric");
-  const kpiUnit    = document.getElementById("kpiUnit");
-  const kpiLast    = document.getElementById("kpiLast");
-  const kpiDelta   = document.getElementById("kpiDelta");
-  const chartNote  = document.getElementById("chartNote");
+    const ctx = document.getElementById("chart").getContext("2d");
 
-  // 3) 셀렉트 채우기
-  function initSelects(){
-    const countries = Object.keys(DATA);
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: country,
+          data: values
+        }]
+      }
+    });
+  }
+
+  (async ()=>{
+    // 아직 링크를 안 넣었으면 안내
+    if (SHEET_CSV_URL.includes("PASTE_YOUR")) {
+      alert("아직 구글시트 CSV 링크가 없습니다.\n다음 단계에서 링크를 넣으면 대시보드가 동작합니다.");
+      return;
+    }
+
+    const data = await loadSheetCSV();
+    const countries = Object.keys(data);
+
+    const sel = document.getElementById("countrySelect");
     countries.forEach(c=>{
       const opt = document.createElement("option");
       opt.value = c; opt.textContent = c;
-      countrySel.appendChild(opt);
+      sel.appendChild(opt);
     });
 
-    METRICS.forEach(m=>{
-      const opt = document.createElement("option");
-      opt.value = m.key; opt.textContent = m.name;
-      metricSel.appendChild(opt);
-    });
+    sel.addEventListener("change", ()=> drawChart(sel.value, data));
 
-    // 기본 선택
-    countrySel.value = countries[0];
-    metricSel.value  = METRICS[0].key;
-  }
-
-  // 4) 간단 캔버스 라인차트(외부 라이브러리 없이)
-  const canvas = document.getElementById("chart");
-  const ctx = canvas.getContext("2d");
-
-  function resizeCanvas(){
-    // CSS 사이즈에 맞게 실제 캔버스 픽셀 조정
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(320 * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-
-  function drawChart(values, label){
-    resizeCanvas();
-    const W = canvas.getBoundingClientRect().width;
-    const H = 320;
-
-    ctx.clearRect(0,0,W,H);
-
-    const padL=44, padR=16, padT=18, padB=36;
-    const plotW = W - padL - padR;
-    const plotH = H - padT - padB;
-
-    const minV = Math.min(...values);
-    const maxV = Math.max(...values);
-    const range = (maxV - minV) || 1;
-
-    // 축
-    ctx.strokeStyle = "#d9dbe6";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(padL, padT);
-    ctx.lineTo(padL, padT + plotH);
-    ctx.lineTo(padL + plotW, padT + plotH);
-    ctx.stroke();
-
-    // y 눈금(3개)
-    ctx.fillStyle = "#666";
-    ctx.font = "12px system-ui";
-    for(let i=0;i<3;i++){
-      const t = i/2; // 0,0.5,1
-      const y = padT + (1-t)*plotH;
-      const v = (minV + t*range);
-      ctx.strokeStyle="#eef0f6";
-      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL+plotW, y); ctx.stroke();
-      ctx.fillText(v.toFixed(2).replace(/\.00$/,""), 6, y+4);
+    if (countries.length > 0) {
+      sel.value = countries[0];
+      drawChart(countries[0], data);
+    } else {
+      alert("구글시트에 데이터가 없거나 형식이 맞지 않습니다.\n헤더는 Country,Year,Value 이어야 합니다.");
     }
-
-    // x 라벨
-    ctx.fillStyle="#666";
-    YEARS.forEach((yr, i)=>{
-      const x = padL + (i/(YEARS.length-1))*plotW;
-      ctx.fillText(String(yr), x-12, padT+plotH+22);
-    });
-
-    // 라인
-    ctx.strokeStyle="#2b2f3a";
-    ctx.lineWidth=2;
-    ctx.beginPath();
-    values.forEach((v,i)=>{
-      const x = padL + (i/(YEARS.length-1))*plotW;
-      const y = padT + (1-(v-minV)/range)*plotH;
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    });
-    ctx.stroke();
-
-    // 점
-    ctx.fillStyle="#2b2f3a";
-    values.forEach((v,i)=>{
-      const x = padL + (i/(YEARS.length-1))*plotW;
-      const y = padT + (1-(v-minV)/range)*plotH;
-      ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2); ctx.fill();
-    });
-
-    chartNote.textContent = label;
-  }
-
-  // 5) 표/ KPI 갱신
-  function update(){
-    const c = countrySel.value;
-    const mKey = metricSel.value;
-    const m = METRICS.find(x=>x.key===mKey);
-
-    const values = DATA[c][mKey];
-
-    // KPI
-    kpiCountry.textContent = c;
-    kpiMetric.textContent  = m.name;
-    kpiUnit.textContent    = m.unit;
-
-    const last = values[values.length-1];
-    const first = values[0];
-    const delta = last - first;
-
-    kpiLast.textContent = (typeof last === "number") ? (Number.isInteger(last) ? last : last.toFixed(2)) : String(last);
-    kpiDelta.textContent = `2020 대비 ${delta>=0?"+":""}${Number.isInteger(delta)?delta:delta.toFixed(2)}`;
-
-    // 표
-    tbody.innerHTML = "";
-    YEARS.forEach((yr,i)=>{
-      const tr = document.createElement("tr");
-      const tdY = document.createElement("td");
-      const tdV = document.createElement("td");
-      tdY.textContent = yr;
-      const v = values[i];
-      tdV.textContent = Number.isInteger(v) ? v : v.toFixed(2).replace(/\.00$/,"");
-      tr.appendChild(tdY); tr.appendChild(tdV);
-      tbody.appendChild(tr);
-    });
-
-    // 차트
-    drawChart(values, `${c} · ${m.name} (${m.unit})`);
-  }
-
-  // 6) CSV 다운로드(표)
-  function downloadCSV(){
-    const c = countrySel.value;
-    const mKey = metricSel.value;
-    const m = METRICS.find(x=>x.key===mKey);
-    const values = DATA[c][mKey];
-
-    let csv = "Country,Metric,Unit,Year,Value\n";
-    YEARS.forEach((yr,i)=>{
-      csv += `${c},${m.name},${m.unit},${yr},${values[i]}\n`;
-    });
-
-    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ODA_${c}_${mKey}_2020_2025.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  // 이벤트
-  window.addEventListener("resize", update);
-  countrySel.addEventListener("change", update);
-  metricSel.addEventListener("change", update);
-
-  document.getElementById("btnReset").addEventListener("click", ()=>{
-    countrySel.selectedIndex = 0;
-    metricSel.selectedIndex = 0;
-    update();
-  });
-
-  document.getElementById("btnDownload").addEventListener("click", downloadCSV);
-
-  // 시작
- (async () => {
-  DATA = await loadCSV();
-  initSelects();
-  update();
-})();
+  })();
 </script>
-</body>
 
+</body>
 </html>
