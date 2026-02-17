@@ -1,57 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ODA Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body{font-family:system-ui,Segoe UI,Arial;margin:20px;}
+  .muted{color:#666;font-size:12px;margin-bottom:8px;}
+</style>
+</head>
+<body>
+
+<h2>ODA 규모 대시보드 (5개국, 2020-2025)</h2>
+<div class="muted">※ 구글시트 수정 → GitHub Pages에서 30초마다 자동 반영</div>
+
+<select id="countrySelect"></select>
+<canvas id="chart" height="120"></canvas>
+
 <script>
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQRhC0Xgz4laHM5pCPe1Fe2-1guZcOCJkFfTln4cRoGc5nFsqcsyfLpBljlNnJZuOfjqDGM4Y0Ag-kO/pub?output=csv
+// ★ 여기만 나중에 구글시트 CSV 링크로 바꿉니다
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTs5e6UgYZEbRJtDgUNbjwfOP3dSFzUum-sU4JxZHdcDu1Zy6JxrFxATAwst_Rh1J3Fh-m9vIkRS_Kd/pub?output=csv
 ";
 
-async function loadSheetCSV(){
-  const res = await fetch(SHEET_CSV_URL);
-  const text = await res.text();
-  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-
-  const rows = lines.slice(1);
-  const data = {};
-
-  rows.forEach(line=>{
-    const [country, year, value] = line.split(",");
-    if (!country) return;
-    if (!data[country]) data[country] = [];
-    data[country].push({ year: year.trim(), value: parseFloat(value) });
-  });
-
-  Object.keys(data).forEach(c=>{
-    data[c].sort((a,b)=> a.year.localeCompare(b.year));
-  });
-
-  return data;
-}
-
+const YEARS = [2020,2021,2022,2023,2024,2025];
 let chart;
 
-function drawChart(country, data){
-  const labels = data[country].map(d=>d.year);
-  const values = data[country].map(d=>d.value);
+async function loadRows(){
+  const res = await fetch(CSV_URL);
+  const text = await res.text();
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+
+  // 헤더: Country,Year,ODA_USD_m
+  const rows = lines.slice(1).map(line=>{
+    const cols = line.split(",");
+    return {
+      Country: (cols[0]||"").trim(),
+      Year: Number((cols[1]||"").trim()),
+      ODA_USD_m: Number((cols[2]||"").trim())
+    };
+  }).filter(r=>r.Country && r.Year);
+
+  return rows;
+}
+
+function draw(country, rows){
+  const values = YEARS.map(y=>{
+    const r = rows.find(x=>x.Country===country && x.Year===y);
+    return r ? r.ODA_USD_m : null;
+  });
 
   const ctx = document.getElementById("chart").getContext("2d");
-
-  if (chart) chart.destroy();
-
+  if(chart) chart.destroy();
   chart = new Chart(ctx, {
     type: "line",
     data: {
-      labels,
-      datasets: [{
-        label: country,
-        data: values
-      }]
+      labels: YEARS,
+      datasets: [{ label: country, data: values }]
     }
   });
 }
 
-(async ()=>{
-  const data = await loadSheetCSV();
-  const countries = Object.keys(data);
+async function init(){
+  if(CSV_URL === "PASTE_CSV_LINK_HERE"){
+    alert("아직 CSV 링크가 없습니다. 다음 단계에서 링크를 넣으면 됩니다.");
+    return;
+  }
+
+  const rows = await loadRows();
+  const countries = [...new Set(rows.map(r=>r.Country))].filter(Boolean);
 
   const sel = document.getElementById("countrySelect");
-
+  sel.innerHTML = "";
   countries.forEach(c=>{
     const opt = document.createElement("option");
     opt.value = c;
@@ -59,21 +78,16 @@ function drawChart(country, data){
     sel.appendChild(opt);
   });
 
-  sel.addEventListener("change", ()=> drawChart(sel.value, data));
+  sel.addEventListener("change", ()=> draw(sel.value, rows));
+  sel.value = countries[0] || "";
+  if(sel.value) draw(sel.value, rows);
 
-  if (countries.length > 0){
-    sel.value = countries[0];
-    drawChart(countries[0], data);
-  }
+  // ✅ 30초 자동 새로고침
+  setInterval(()=> location.reload(), 30000);
+}
 
-  // ✅ 30초마다 자동 새로고침
-  setInterval(()=>{
-    location.reload();
-  }, 30000);
-
-})();
+init();
 </script>
 
-
-
-
+</body>
+</html>
